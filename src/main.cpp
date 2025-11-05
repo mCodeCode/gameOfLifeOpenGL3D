@@ -241,7 +241,7 @@ int main()
     Shader worldShader("../res/shaders/main_sh_1.vs", "../res/shaders/main_sh_1.fs"); 
     //voxel size uniform
     worldShader.use();
-    worldShader.setFloat("voxelSize", 0.02);
+    worldShader.setFloat("voxelSize", voxelmanager::cellSize);
 
     //------------------------------------------------------------------------
     //------------------------------------------------------------------------

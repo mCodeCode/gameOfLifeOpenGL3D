@@ -6,8 +6,8 @@
 
 namespace voxelmanager {
 
-
-    
+    int cubeSize = 10;
+    const int VOXELS_TO_SPAWN = cubeSize * cubeSize * cubeSize;
     //------------------------------------------------
     //------------------------------------------------
     unsigned int sharedVAO = 0;
@@ -332,21 +332,24 @@ namespace voxelmanager {
     // initializes positions and colors for all instances
     void initInstacesData(){
 
-        const int VOXELS_TO_SPAWN = 5000000;
-
+        
         //---------- init random positions
+        //store grid positions, draw with world positions by multiplying by cellSize
         for (int i = 0; i < VOXELS_TO_SPAWN; ++i) {
-            float x = randomXPos(mt);
-            float y = randomYPos(mt);
-            float z = randomXPos(mt);
-            instancesPositions.push_back(glm::vec3(x,y,z));
+
+            int x = i % cubeSize;
+            int y = (i / cubeSize) % cubeSize;
+            int z = i / (cubeSize * cubeSize);
+
+
+
+            glm::vec3 newWorldPos = glm::vec3(x, y, z) * cellSize;
+
+            //store world positions
+            instancesPositions.push_back(newWorldPos);
+            
         }
 
-        //-----------------------------------------------
-        // std::cout << "checking positions" << std::endl;
-        // for (const auto& pos : instancesPositions) {
-        //     std::cout << "  X: " << pos.x << ", Y: " << pos.y << ", Z: " << pos.z << std::endl;
-        // }
 
 
         //------------ init random colors for each voxel
@@ -354,12 +357,6 @@ namespace voxelmanager {
             glm::vec3 randColor = voxelColorsList[voxelColorsDist(mt)];
             instancesColors.push_back(randColor);
         }
-
-        //-----------------------------------------------
-        // std::cout << "checking colors" << std::endl;
-        // for (const auto& color : instancesColors) {
-        //     std::cout << "R: " << color.r << ", G: " << color.g << ", B: " << color.b << std::endl;
-        // }
 
     };
 
