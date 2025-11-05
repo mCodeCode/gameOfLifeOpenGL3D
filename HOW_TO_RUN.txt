@@ -1,0 +1,107 @@
+(IMPORTANT)-----------------------------------------------
+
+IN ORDER FOR THE PROGRAM TO BE ABLE TO RUN , 
+THE FOLLOWING .DLL FILES MUST BE PRESENT IN THE SAME DIRECTORY THAT THE .EXE FILE
+(IN THIS CASE THE buildDest FOLDER) (find this dll files in the bin folder of mingw/mysys64)
+
+libgcc_s_seh-1.dll
+libstdc++-6.dll
+libwinpthread-1.dll
+glfw3.dll
+
+(IMPORTANT)-----------------------------------------------
+
+
+
+//how to build the exe (the process is the same as bulding for raylib)
+
+
+1) open mingwg
+
+2) cd to /src directory
+
+3)inside there, run this command to build exe file.
+  ---(check exe output directory in compilation command)
+
+
+g++ ./*cpp ./*c -o ../buildDest/openglSetupTest.exe -O1 -Wall -std=c++17 -Wno-missing-braces  -I ../include/ -L ../lib/ -lglfw3dll
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//declare global 
+bool justSwitchedToWalking = false;
+
+
+//use flag to cause one action per key press, and not actions while the key is being held
+//(like for acceleration in a  racing game)
+if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
+        if (currentMovementMode == FLYING) {
+            currentMovementMode = WALKING;
+            justSwitchedToWalking = true;
+        } else {
+            currentMovementMode = FLYING;
+        }
+
+
+        std::cout << "Switched to " << (currentMovementMode == FLYING ? "FLYING" : "WALKING") << " mode\n";
+    };
