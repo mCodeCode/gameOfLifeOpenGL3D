@@ -7,6 +7,7 @@
 #include <iostream>
 #include <thread>
 
+
 #include "customcamera.h"
 #include "shaderhandler.h"
 #include "voxelmanager.h" //includes glm::vec3 vec4 and such from imports
@@ -316,8 +317,10 @@ int main()
 
 
 
+    
 
 
+
     //------------------------------------------------------------------------
     //------------------------------------------------------------------------
     //------------------------------------------------------------------------
@@ -341,6 +344,9 @@ int main()
     //------------------------------------------------------------------------
     //------------------------------------------------------------------------
     //------------------------------------------------------------------------
+
+    float simTimer = 0.0f;
+    float simStepInterval = 0.4f;
 
     // render loop
     // -----------
@@ -374,8 +380,16 @@ int main()
         glm::mat4 view = mainCamera.GetViewMatrix();
         worldShader.setMat4("view", view);
 
-        //---- update buffers
-        voxelmanager::updateInstacesData();
+        //---- updates voxel status and after that
+        // sends the updated buffers to the gpu
+        simTimer += deltaTime;
+        if (simTimer >= simStepInterval) {
+            simTimer = 0.0f;
+            voxelmanager::updateVoxelPositions();
+        }
+
+
+
 
 
         //bind VAO before draw call
@@ -400,7 +414,6 @@ int main()
 
 
         glBindVertexArray(0);
-
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
