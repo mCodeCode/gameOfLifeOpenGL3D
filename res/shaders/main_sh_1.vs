@@ -2,14 +2,14 @@
 
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 instancePos;
-layout (location = 2) in vec3 voxelColorInput;
+layout (location = 2) in vec4 voxelColorInput;
 
 
 uniform mat4 view;
 uniform mat4 projection;
 uniform float voxelSize;
 
-out vec3 voxelColor;
+out vec4 voxelColor;
 
 
 

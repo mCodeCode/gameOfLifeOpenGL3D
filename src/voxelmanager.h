@@ -12,6 +12,7 @@
 //------------------------
 #include <vector>
 #include <random>
+#include <unordered_map>
 
 
 namespace voxelmanager {
@@ -28,7 +29,7 @@ namespace voxelmanager {
         glm::vec3 position;
         glm::ivec3 gridPos;
         VoxelType type;
-        glm::vec3 color;
+        glm::vec4 color;
     };
 
     //--------------------------------------------------------------
@@ -54,7 +55,7 @@ namespace voxelmanager {
 
     //declare and fill in setup call
     extern std::vector<glm::vec3> instancesPositions;
-    extern std::vector<glm::vec3> instancesColors;
+    extern std::vector<glm::vec4> instancesColors;
 
     //----------- for random voxel colors (picked from list) (temp for now)
     extern std::random_device rd;

@@ -223,6 +223,11 @@ int main()
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+
+    // This tells OpenGL how to mix source and destination colors:
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 
     //------------------------------------------------------------------------
     //------------------------------------------------------------------------
@@ -346,7 +351,7 @@ int main()
     //------------------------------------------------------------------------
 
     float simTimer = 0.0f;
-    float simStepInterval = 0.4f;
+    float simStepInterval = 0.0f;
 
     // render loop
     // -----------
@@ -402,7 +407,9 @@ int main()
         }
 
         int instancesCount = voxelmanager::instancesPositions.size();
+        // int voxelCount = voxelmanager::voxelsList.size();
         std::cout << "instancesCount : " << instancesCount << "\n";
+        // std::cout << "voxelCount : " << voxelCount << "\n";
         if (instancesCount == 0) continue;
 
 

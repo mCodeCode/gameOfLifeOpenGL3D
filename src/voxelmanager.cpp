@@ -13,9 +13,19 @@
 #include "stb_perlin.h"
 #include <algorithm>
 
+
+// namespace std {
+//     template <>
+//     struct hash<glm::ivec3> {
+//         size_t operator()(const glm::ivec3& v) const {
+//             return ((std::hash<int>()(v.x) ^ (std::hash<int>()(v.y) << 1)) >> 1) ^ (std::hash<int>()(v.z) << 1);
+//         }
+//     };
+// };
+
 namespace voxelmanager {
 
-    int cubeSize = 20;
+    int cubeSize = 100;
     const int VOXELS_TO_SPAWN = cubeSize * cubeSize * cubeSize;
     //------------------------------------------------
     //------------------------------------------------
@@ -30,9 +40,11 @@ namespace voxelmanager {
     //------------------------------------------------
     //------------------------------------------------
     const int WORLD_MIN_X = 0;
-    const int WORLD_MAX_X = 1000;
+    const int WORLD_MAX_X = cubeSize;
     const int WORLD_MIN_Y = 0;
-    const int WORLD_MAX_Y = 500;
+    const int WORLD_MAX_Y = cubeSize;
+    const int WORLD_MIN_Z = 0;
+    const int WORLD_MAX_Z = cubeSize;
 
     size_t lastPositionSize = 0;
     size_t lastColorSize = 0;
@@ -40,8 +52,9 @@ namespace voxelmanager {
     //------------------------------------------------
     //------------------------------------------------
     std::vector<Voxel> voxelsList;
+
     std::vector<glm::vec3> instancesPositions;
-    std::vector<glm::vec3> instancesColors;
+    std::vector<glm::vec4> instancesColors;
     
     //-------------------------------------------------
     //-------------------------------------------------
@@ -260,7 +273,7 @@ namespace voxelmanager {
             return;
         }
 
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, (void*)0);
         if (err != GL_NO_ERROR) {
             std::cout << "10)  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, (void*)0); failed" << err << "\n";
             return;
@@ -343,6 +356,9 @@ namespace voxelmanager {
     // initializes positions and colors for all instances
     void initInstacesData(){
 
+        //create grid size
+        voxelsList.resize(WORLD_MAX_X * WORLD_MAX_Y * WORLD_MAX_Z);
+
         srand(time(NULL)); // Seed the random number generator
 
         const float UPPER_BOUND_RAND = 100.0f;
@@ -359,24 +375,25 @@ namespace voxelmanager {
             float ry = rand() / (float)RAND_MAX * UPPER_BOUND_RAND;
             float rz = rand() / (float)RAND_MAX * UPPER_BOUND_RAND;
 
-            bool insertEmpty = (rand() / (float)RAND_MAX * 2.0f) >= 1;
-            // if(rx > 50 && ry < (rz+ry) && rz > (rx)){
-            //     insertEmpty = true;
-            // }
+            bool insertEmpty = false; //(rand() / (float)RAND_MAX * 2.0f) >= 1;
+            if(rx > 50 && ry < (rz+ry) && rz > (rx)){
+                insertEmpty = true;
+            }
 
-            // if( ry > (rz-ry) && rz + ry > (rx)){
-            //     insertEmpty = true;
-            // }
+            if( ry > (rz-ry) && rz + ry > (rx)){
+                insertEmpty = true;
+            }
 
-            // if(rz > 50 ){
-            //     insertEmpty = true;
-            // }
+            if(rz > 50 ){
+                insertEmpty = true;
+            }
 
             Voxel newVoxel;
             newVoxel.gridPos = glm::vec3(x, y, z);
-            newVoxel.position = glm::vec3(x, y, z) * cellSize;
+            newVoxel.position = glm::vec3(x, y, z) * (cellSize * 4);
             newVoxel.type = insertEmpty ? VoxelType::EMPTY : VoxelType::ALIVE;
-            newVoxel.color = voxelColorsList[voxelColorsDist(mt)];
+            glm::vec3 voxelColorTmp = voxelColorsList[voxelColorsDist(mt)];
+            newVoxel.color = glm::vec4(voxelColorTmp, insertEmpty? 0.0f : 1.0f);
 
             //store voxel
             voxelsList.push_back(newVoxel);
@@ -406,11 +423,9 @@ namespace voxelmanager {
         instancesPositions.clear();
         instancesColors.clear();
         //--------
-        for (const Voxel& voxel : voxelsList) {
-            if(voxel.type != VoxelType::EMPTY){
-                instancesPositions.push_back(voxel.position);
-                instancesColors.push_back(voxel.color);
-            }
+        for (auto& voxel : voxelsList) {
+            instancesPositions.push_back(voxel.position);
+            instancesColors.push_back(voxel.color);
         }
 
 
@@ -444,9 +459,9 @@ namespace voxelmanager {
             }
         }
 
-        if((instancesColors.size() * sizeof(glm::vec3) > 0)){
+        if((instancesColors.size() * sizeof(glm::vec4) > 0)){
             if(lastColorSize <= 0){
-                thisUploadSize += instancesColors.size() * sizeof(glm::vec3);
+                thisUploadSize += instancesColors.size() * sizeof(glm::vec4);
             }
         }
 
@@ -498,7 +513,7 @@ namespace voxelmanager {
         
         //---------------------------------------- same logic as positions, check size,
         //---------------------------------------- and update or resize the buffer
-        size_t newColorSize = instancesColors.size() * sizeof(glm::vec3);
+        size_t newColorSize = instancesColors.size() * sizeof(glm::vec4);
         glBindBuffer(GL_ARRAY_BUFFER, VBOColors);
         if (err != GL_NO_ERROR) {
             std::cerr << "17)   glBindBuffer(GL_ARRAY_BUFFER, vboColors); failed" << err << "\n";
@@ -523,7 +538,7 @@ namespace voxelmanager {
                 return;
             }
 
-            thisUploadSize += instancesColors.size() * sizeof(glm::vec3);
+            thisUploadSize += instancesColors.size() * sizeof(glm::vec4);
         }
 
 
@@ -573,18 +588,10 @@ namespace voxelmanager {
     //main simulation loop, runs every frame in main render loop
     void updateVoxelPositions(){
 
-        std::cout << "creating new simulation frame..." << std::endl;
-
-        // std::vector<Voxel> voxelToAdd; 
-        //don't need to remove , just set to EMPTY to skip rendering
-
-        for (Voxel& voxel : voxelsList) {
+        for (auto& voxel : voxelsList) {
             
             int neighborCount = 0;
             int emptyNeighborCount = 0;
-
-            //this would be the center of the 3x3x3 cube grid
-            glm::vec3 currGridCenterPos = voxel.gridPos;
 
             //loop the 3x3x3 grid
             //for now we use the basic game of life rules
@@ -594,30 +601,26 @@ namespace voxelmanager {
                         
                         if (dx == 0 && dy == 0 && dz == 0) continue; // skip center
                         
-                        int nx = currGridCenterPos.x + dx;
-                        int ny = currGridCenterPos.y + dy;
-                        int nz = currGridCenterPos.z + dz;
+                        int nx = voxel.gridPos.x + dx;
+                        int ny = voxel.gridPos.y + dy;
+                        int nz = voxel.gridPos.z + dz;
 
                         // process neighbor at (nx, ny, nz)
-                        glm::ivec3 gridNeighbor = glm::vec3(nx, ny, nz);
-                        auto it = std::find_if(voxelsList.begin(), voxelsList.end(),
-                            [&](const Voxel& voxel) {
-                                return voxel.gridPos == gridNeighbor;
-                            });
+                        if (nx >= 0 && nx < WORLD_MAX_X &&
+                            ny >= 0 && ny < WORLD_MAX_Y &&
+                            nz >= 0 && nz < WORLD_MAX_Z) {
 
-                        if (it != voxelsList.end()) {
-                            // Found the voxel
-                            Voxel& foundVoxel = *it;
-                            // Use foundVoxel
-                            if(foundVoxel.type == VoxelType::EMPTY){
-                                emptyNeighborCount += 1;
-                            }else{
-                                neighborCount += 1;
+                            int index = nx + ny * WORLD_MAX_X + nz * WORLD_MAX_X * WORLD_MAX_Y;
+                            Voxel& neighbor = voxelsList[index];
+
+                            if (neighbor.type == VoxelType::EMPTY) {
+                                emptyNeighborCount++;
+                            } else {
+                                neighborCount++;
                             }
                         }
-                        //  else {
-                        //     // Not found
-                        // }
+
+
                     }
                 }
             }//--------------------- end of neighbours check
@@ -626,16 +629,19 @@ namespace voxelmanager {
             //now that the neighbors are counted, apply the rules
             
             //cell dies by underpopulation
-            if(neighborCount < 2){
+            if(neighborCount < 5){
                 voxel.type = VoxelType::EMPTY;
-            }else if(voxel.type == VoxelType::ALIVE && neighborCount > 1 && neighborCount < 4 ){
+                voxel.color = glm::vec4(voxel.color.r, voxel.color.g, voxel.color.b, 0.0f);
+            }else if(voxel.type == VoxelType::ALIVE && neighborCount > 3 && neighborCount < 6 ){
                 //do nothing here, cell lives for another generation
-            }else if(voxel.type == VoxelType::ALIVE && neighborCount > 3){
+            }else if(voxel.type == VoxelType::ALIVE && neighborCount > 7){
                 //cell dies, as if by overpopulation.
                 voxel.type = VoxelType::EMPTY;
-            }else if(voxel.type == VoxelType::EMPTY && neighborCount > 3){
+                voxel.color = glm::vec4(voxel.color.r, voxel.color.g, voxel.color.b, 0.0f);
+            }else if(voxel.type == VoxelType::EMPTY && neighborCount > 4){
                 //becomes a live cell, as if by reproduction.
                 voxel.type = VoxelType::ALIVE;
+                voxel.color = glm::vec4(voxel.color.r, voxel.color.g, voxel.color.b, 1.0f);
             }
 
         }//--------- end of for loop through all voxels
