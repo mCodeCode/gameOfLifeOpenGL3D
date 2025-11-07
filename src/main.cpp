@@ -350,9 +350,6 @@ int main()
     //------------------------------------------------------------------------
     //------------------------------------------------------------------------
 
-    float simTimer = 0.0f;
-    float simStepInterval = 0.0f;
-
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -387,11 +384,12 @@ int main()
 
         //---- updates voxel status and after that
         // sends the updated buffers to the gpu
-        simTimer += deltaTime;
-        if (simTimer >= simStepInterval) {
-            simTimer = 0.0f;
-            voxelmanager::updateVoxelPositions();
-        }
+        // int stepsPerFrame = 10;
+        // for (int i = 0; i < stepsPerFrame; ++i) {
+        // }
+        voxelmanager::updateVoxelPositions();
+
+
 
 
 

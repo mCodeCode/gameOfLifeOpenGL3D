@@ -357,7 +357,9 @@ namespace voxelmanager {
     void initInstacesData(){
 
         //create grid size
-        voxelsList.resize(WORLD_MAX_X * WORLD_MAX_Y * WORLD_MAX_Z);
+        voxelsList.clear();
+        voxelsList.reserve(WORLD_MAX_X * WORLD_MAX_Y * WORLD_MAX_Z);
+
 
         srand(time(NULL)); // Seed the random number generator
 
@@ -390,8 +392,8 @@ namespace voxelmanager {
 
             Voxel newVoxel;
             newVoxel.gridPos = glm::vec3(x, y, z);
-            newVoxel.position = glm::vec3(x, y, z) * (cellSize * 4);
-            newVoxel.type = insertEmpty ? VoxelType::EMPTY : VoxelType::ALIVE;
+            newVoxel.position = glm::vec3(x, y, z) * (cellSize);
+            newVoxel.type = insertEmpty ? VoxelType::EMPTY : VoxelType::SAND;
             glm::vec3 voxelColorTmp = voxelColorsList[voxelColorsDist(mt)];
             newVoxel.color = glm::vec4(voxelColorTmp, insertEmpty? 0.0f : 1.0f);
 
@@ -399,6 +401,8 @@ namespace voxelmanager {
             voxelsList.push_back(newVoxel);
 
         }
+
+        std::cout << "Voxel count: " << voxelsList.size() << "\n";
     };
 
 
@@ -424,9 +428,13 @@ namespace voxelmanager {
         instancesColors.clear();
         //--------
         for (auto& voxel : voxelsList) {
-            instancesPositions.push_back(voxel.position);
-            instancesColors.push_back(voxel.color);
+            if (voxel.color.a > 0.0f) {
+                instancesPositions.push_back(voxel.position);
+                instancesColors.push_back(voxel.color);
+            }
+
         }
+
 
 
         if (instancesPositions.empty()) return;
@@ -586,69 +594,48 @@ namespace voxelmanager {
     //--------------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------------
     //main simulation loop, runs every frame in main render loop
-    void updateVoxelPositions(){
+    void updateVoxelPositions() {
+        int totalVoxels = WORLD_MAX_X * WORLD_MAX_Y * WORLD_MAX_Z;
 
-        for (auto& voxel : voxelsList) {
-            
-            int neighborCount = 0;
-            int emptyNeighborCount = 0;
+        for (int index = totalVoxels - 1; index >= 0; --index) {
+            Voxel& voxel = voxelsList[index];
 
-            //loop the 3x3x3 grid
-            //for now we use the basic game of life rules
-            for (int dx = -1; dx <= 1; ++dx) {
-                for (int dy = -1; dy <= 1; ++dy) {
-                    for (int dz = -1; dz <= 1; ++dz) {
-                        
-                        if (dx == 0 && dy == 0 && dz == 0) continue; // skip center
-                        
-                        int nx = voxel.gridPos.x + dx;
-                        int ny = voxel.gridPos.y + dy;
-                        int nz = voxel.gridPos.z + dz;
+            if (voxel.type == VoxelType::SAND) {
 
-                        // process neighbor at (nx, ny, nz)
-                        if (nx >= 0 && nx < WORLD_MAX_X &&
-                            ny >= 0 && ny < WORLD_MAX_Y &&
-                            nz >= 0 && nz < WORLD_MAX_Z) {
+                int x = index % WORLD_MAX_X;
+                int y = (index / WORLD_MAX_X) % WORLD_MAX_Y;
+                int z = index / (WORLD_MAX_X * WORLD_MAX_Y);
 
-                            int index = nx + ny * WORLD_MAX_X + nz * WORLD_MAX_X * WORLD_MAX_Y;
-                            Voxel& neighbor = voxelsList[index];
+                // std::cout << "Voxel at (" << x << ", " << y << ", " << z << ") is falling\n";
 
-                            if (neighbor.type == VoxelType::EMPTY) {
-                                emptyNeighborCount++;
-                            } else {
-                                neighborCount++;
-                            }
-                        }
+                int belowY = y - 1;
+                if (belowY >= 0) {
+                    int belowIndex = x + belowY * WORLD_MAX_X + z * WORLD_MAX_X * WORLD_MAX_Y;
+                    Voxel& below = voxelsList[belowIndex];
 
+                    if (below.type == VoxelType::EMPTY) {
+                        Voxel moved = voxel;
+                        moved.gridPos = glm::vec3(x, belowY, z);
+                        moved.position = moved.gridPos * (cellSize);
 
+                        voxelsList[belowIndex] = moved;
+
+                        voxel.type = VoxelType::EMPTY;
+                        voxel.color.a = 0.0f;
                     }
                 }
-            }//--------------------- end of neighbours check
 
-
-            //now that the neighbors are counted, apply the rules
-            
-            //cell dies by underpopulation
-            if(neighborCount < 5){
-                voxel.type = VoxelType::EMPTY;
-                voxel.color = glm::vec4(voxel.color.r, voxel.color.g, voxel.color.b, 0.0f);
-            }else if(voxel.type == VoxelType::ALIVE && neighborCount > 3 && neighborCount < 6 ){
-                //do nothing here, cell lives for another generation
-            }else if(voxel.type == VoxelType::ALIVE && neighborCount > 7){
-                //cell dies, as if by overpopulation.
-                voxel.type = VoxelType::EMPTY;
-                voxel.color = glm::vec4(voxel.color.r, voxel.color.g, voxel.color.b, 0.0f);
-            }else if(voxel.type == VoxelType::EMPTY && neighborCount > 4){
-                //becomes a live cell, as if by reproduction.
-                voxel.type = VoxelType::ALIVE;
-                voxel.color = glm::vec4(voxel.color.r, voxel.color.g, voxel.color.b, 1.0f);
             }
+        }
 
-        }//--------- end of for loop through all voxels
-
-        //after updating all the positions and states in the array, update gpu buffers
         updateInstacesData();
     };
+
+
+
+
+
+
 
 
 };
